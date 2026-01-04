@@ -75,8 +75,10 @@ In this section, I
 - Gemini API key
 
 ### Environment Variables
-Add a `.env` file:
+Add a `.env` file
+
 NEWS_API_KEY=user_newsapi_key
+
 GEMINI_API_KEY=user_gemini_api_key
 
 ### Install Dependencies 
