@@ -1,40 +1,30 @@
-import logging
 from google import genai
 from google.genai import types
 from mcp_client import McpClient
 from prompts import SYSTEM_PROMPT
 from config import GEMINI_API_KEY
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-
 client = genai.Client(api_key=GEMINI_API_KEY)
-
-
 mcp = McpClient()
 
 
-def search_clinware_news(query: str):
-    return mcp.search(query)
+
+def needs_news(query: str) -> bool:
+    keywords = ["news", "latest", "funding", "update", "happening", "launch","working"]
+    return any(k in query.lower() for k in keywords)
+
 
 
 def run_agent():
-    logging.info("Clinware Market Intelligence Agent started")
-
-    user_query = input("Ask about Clinware: ")
-    logging.info(f"User query received: {user_query}")
-
+    print("\nClinware Intelligence Agent")
+    print("Ask about company news, funding, products, or general information:\n")
 
     tools = [
         types.Tool(
             function_declarations=[
                 types.FunctionDeclaration(
-                    name="search_clinware_news",
-                    description="Fetch latest Clinware news from MCP server",
+                    name="search_company_news",
+                    description="Search verified Google News via MCP",
                     parameters={
                         "type": "object",
                         "properties": {
@@ -47,56 +37,86 @@ def run_agent():
         )
     ]
 
+    while True:
+        user_query = input("> ").strip()
+        if user_query.lower() in ("exit", "quit"):
+            break
 
-    response = client.models.generate_content(
-        model="models/gemini-flash-latest",
-        contents=user_query,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            tools=tools
-        )
-    )
-
-
-    for part in response.candidates[0].content.parts:
-        if part.function_call:
-            logging.info("Tool call detected: search_clinware_news")
-
-            news = search_clinware_news(user_query)
-            logging.info(f"News articles fetched: {len(news)}")
-
-            if not news:
-                logging.warning("No public news found for Clinware")
-
-                print("\n=== Clinware Market Intelligence Summary ===\n")
-                print(
-                    "No recent public news related to Clinware was found at the time of analysis.\n"
-                    "This may be due to limited media coverage or the company operating privately."
-                )
-                print("\nData Source: NewsAPI (via Local MCP Server)")
-                return
-
-            grounded_prompt = f"""
-            Using ONLY the following news data, generate a market intelligence summary:
-
-            {news}
-            """
-
-            final_response = client.models.generate_content(
+        if needs_news(user_query):
+    
+            decision = client.models.generate_content(
                 model="models/gemini-flash-latest",
-                contents=grounded_prompt
+                contents=f"""
+Extract the main entity (company, product, or organization) from this query.
+Return ONLY the name.
+
+Query: {user_query}
+""",
+                config=types.GenerateContentConfig(temperature=0.0)
             )
 
-            print("\n=== Clinware Market Intelligence Summary ===\n")
-            print(final_response.text)
-            print("\nData Source: NewsAPI (via Local MCP Server)")
-            print("Note: This summary is based solely on publicly available information.")
-            return
+            entity = decision.text.strip() if decision.text else None
 
+            if not entity:
+                print("[Agent]: I need more context to identify what you want to search.\n")
+                continue
 
-    logging.info("No tool call required for this query")
-    print(response.text)
+            print(f"Agent calling search-news with keyword: {entity}")
 
+            try:
+                mcp_response = mcp.search(entity)
+            except TimeoutError:
+                print("[Agent]: MCP Server timeout. Please try again.\n")
+                continue
+
+            if "error" in mcp_response:
+                print("[Agent]: No verified recent news found from Google News.\n")
+                continue
+
+            grounded_prompt = f"""
+You are a market intelligence researcher.
+
+Rules:
+- Use ONLY the news below
+- Do NOT add external knowledge
+- Do NOT speculate
+
+Summarize clearly and concisely.
+
+News:
+{mcp_response["result"]}
+"""
+
+            final = client.models.generate_content(
+                model="models/gemini-flash-latest",
+                contents=grounded_prompt,
+                config=types.GenerateContentConfig(temperature=0.0)
+            )
+
+            if final.text:
+                print(f"[Agent]: {final.text.strip()}")
+                print("Source: Google News\n")
+            else:
+                print("[Agent]: Unable to summarize the retrieved news.\n")
+
+            continue
+
+        response = client.models.generate_content(
+            model="models/gemini-flash-latest",
+            contents=user_query,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.0
+            )
+        )
+
+        if response.text:
+            print(f"[Agent]: {response.text.strip()}\n")
+        else:
+            print(
+                "[Agent]: I couldn’t find enough reliable information. "
+                "Could you please clarify what exactly you want to know?\n"
+            )
 
 if __name__ == "__main__":
     run_agent()
