@@ -24,30 +24,24 @@ The system is intended to illustrate:
 
 ##  System Architecture
 
-User Query  
-↓  
-Gemini LLM (Tool Calling + System Prompt)  
+1.User Query
 
-            ↓ decides tool invocation  
-search_clinware_news (Tool)  
+2.Gemini LLM (Tool Calling + System Prompt)  
+   decides tool invocation  
+   
+3.search_clinware_news (Tool)
 
-            ↓  
-MCP Client (JSON-RPC over stdio)  
+4.MCP Client (JSON-RPC over stdio)  
 
-            ↓  
-Local MCP News Server  
+5.Local MCP News Server  
 
-            ↓  
-NewsAPI (Real-time Public News)  
+6.NewsAPI (Real-time Public News)  
 
-            ↓  
-Structured News Data  
+7.Structured News Data  
+ 
+8.Gemini LLM (Grounded Summary)  
 
-            ↓  
-Gemini LLM (Grounded Summary)  
-
-            ↓  
-Final Market Intelligence Output  
+9.Final Market Intelligence Output  
 
 
 The architecture ensures that all responses are grounded in real-time data fetched via an MCP-compliant server, preventing hallucinations.
