@@ -63,7 +63,7 @@ Avoids speculative or biographical guesses
 
 
 
-#  System Architecture
+#  System Flow
 
 1. The user submits a natural language query to the system.
 
