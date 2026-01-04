@@ -1,44 +1,69 @@
-import json
 import sys
-import requests
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+import json
+import feedparser
 
 def search_news(query):
-    url = "https://newsapi.org/v2/everything"
-    params = {
-        "q": query,
-        "language": "en",
-        "sortBy": "publishedAt",
-        "apiKey": NEWS_API_KEY
-    }
+    url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+    feed = feedparser.parse(url)
 
-    res = requests.get(url, params=params, timeout=10)
-    data = res.json()
+    results = []
+    q = query.lower()
 
-    articles = []
-    for a in data.get("articles", [])[:5]:
-        articles.append({
-            "title": a["title"],
-            "source": a["source"]["name"],
-            "url": a["url"]
-        })
+    for entry in feed.entries:
+        text = (entry.title + " " + entry.get("summary", "")).lower()
+        if q in text:
+            results.append({
+                "title": entry.title,
+                "source": entry.source.title if "source" in entry else "Google News",
+                "url": entry.link
+            })
+        if len(results) == 5:
+            break
 
-    return articles
-
+    return results
 
 for line in sys.stdin:
-    request = json.loads(line)
+    try:
+        request = json.loads(line)
 
-    if request["method"] == "search":
-        result = search_news(request["params"]["query"])
-        response = {
-            "jsonrpc": "2.0",
-            "id": request["id"],
-            "result": result
-        }
+        if request.get("jsonrpc") != "2.0":
+            raise ValueError("Invalid JSON-RPC version")
+
+        if request.get("method") != "search":
+            raise ValueError("Unsupported method")
+
+        query = request["params"].get("query")
+        if not query:
+            raise ValueError("Missing query")
+
+        results = search_news(query)
+
+        if not results:
+            response = {
+                "jsonrpc": "2.0",
+                "id": request["id"],
+                "error": {
+                    "code": -32001,
+                    "message": "No news found"
+                }
+            }
+        else:
+            response = {
+                "jsonrpc": "2.0",
+                "id": request["id"],
+                "result": results
+            }
+
         print(json.dumps(response))
+        sys.stdout.flush()
+
+    except Exception as e:
+        print(json.dumps({
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": {
+                "code": -32000,
+                "message": str(e)
+            }
+        }))
         sys.stdout.flush()
