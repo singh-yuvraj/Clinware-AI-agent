@@ -36,21 +36,21 @@ def safe_gemini_call(prompt: str) -> str | None:
 
 def generate_search_phrase(user_query: str) -> str | None:
     prompt = f"""
-You are preparing a search query for Google News RSS.
+    You are preparing a search query for Google News RSS.
 
-Task:
-Identify the MAIN SUBJECT that news articles would be written about.
+    Task:
+    Identify the MAIN SUBJECT that news articles would be written about.
 
-STRICT RULES:
-- Output ONLY the subject or entity name
-- Do NOT include intent words (funding, founder, news, update, etc.)
-- Do NOT include verbs or questions
-- Do NOT include explanations
-- The output must be a standalone RSS search term
+    STRICT RULES:
+    - Output ONLY the subject or entity name
+    - Do NOT include intent words (funding, founder, news, update, etc.)
+    - Do NOT include verbs or questions
+    - Do NOT include explanations
+    - The output must be a standalone RSS search term
 
-User question:
-"{user_query}"
-"""
+    User question:
+    "{user_query}"
+    """
     return safe_gemini_call(prompt)
 
 
