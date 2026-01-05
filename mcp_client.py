@@ -2,6 +2,7 @@ import subprocess
 import json
 import time
 
+
 class McpClient:
     def __init__(self):
         self.process = subprocess.Popen(
