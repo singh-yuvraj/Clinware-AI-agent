@@ -1,196 +1,171 @@
-# Clinware-AI-agent
+# Clinware-AI-Agent
 
-# Overview
-The Clinware Market Intelligence Agent is a production-style AI research assistant designed to provide factually grounded market intelligence about companies, products, and organizations.
+## Overview
 
+The Clinware Market Intelligence Agent is a **production-style AI research assistant** designed to provide **factually grounded market intelligence** about companies, products, and organizations using **verified public news sources only**.
 
+The agent is intentionally built to **separate reasoning from data access**, ensuring that no responses are generated from model assumptions or training data.
 
-## The agent combines:
+---
 
+## The Agent Combines
 
-Google Gemini (LLM) for reasoning, intent detection, and summarization
+- **Google Gemini (LLM)** for intent understanding, subject extraction, and contextual summarization  
+- **A local MCP-compliant News Server** for real-time data retrieval  
+- **JSON-RPC–based client/server communication**  
+- **Google News RSS** as a verifiable, public, non-hallucinated data source  
 
-A local MCP-compliant News Server
+---
 
-JSON-RPC–based client/server communication
+## Project Goals
 
-Google News RSS as a verifiable public data source
+This project demonstrates how to build an AI agent that:
 
+- Knows **when and how** to fetch real-world data  
+- Uses **external tools responsibly**  
+- Never hallucinates news or facts  
+- Separates **LLM reasoning** from **data retrieval**
 
-
-## The key goal of this project is to demonstrate how to build an AI agent that:
-
-Knows when to fetch real-world data
-
-Uses tools responsibly
-
-Never hallucinates news
-
-Separates reasoning from data access
-
+---
 
 ## Key Capabilities
 
+### Intent-Aware Query Handling
+- Accepts natural language queries  
+- Understands user intent (overview, funding, activities, updates, etc.)  
+- Adapts responses **only when supported by news data**
 
-### Intent-Aware Query Handling:
+### MCP-Based Tool Invocation
+- Uses a **local MCP News Server** as the sole source of factual data  
+- Gemini generates **RSS-compatible search keywords**  
+- MCP executes the search and returns structured news results  
 
-Automatically distinguishes between general knowledge and news-based questions
+### JSON-RPC Communication
+- Client/server interaction over **standard input/output**  
+- Fully compliant with **JSON-RPC 2.0**  
+- Includes request IDs, structured responses, and error handling  
 
-### Tool Calling with MCP:
+### Grounded AI Responses
+- News summaries are generated **only from MCP-provided data**  
+- No external assumptions or background knowledge  
+- Explicitly states when information is not available  
 
-Invokes a local MCP News Server when real-world news is required
-
-### JSON-RPC Communication:
-
-Client/server interaction over standard input/output using JSON-RPC 2.0
-
-### Grounded AI Responses:
-News summaries are generated only from MCP-provided data
-No external assumptions or hallucinations
-
-### Graceful Error Handling:
+### Graceful Error Handling
 Handles:
-No news found
-MCP server timeouts
-Always responds clearly and safely
+- No news found  
+- MCP server timeouts  
+- API rate limits  
 
-Professional Research-Agent Behavior:
-Asks for clarification when information is insufficient
-Avoids speculative or biographical guesses
+All failures result in **clear, non-misleading responses**.
 
----
-
-
-
-
-#  System Flow
-
-1. The user submits a natural language query to the system.
-
-2. The agent (agent.py) receives the query and acts as the central controller.
-
-3. The agent analyzes the query to determine whether real-time news is required.
-
-4. If news is required, the agent uses Gemini to extract the relevant entity.
-
-5. The extracted entity is sent to the MCP client using JSON-RPC.
-
-6. The MCP server retrieves verified public news from Google News RSS.
-
-7. The agent injects the retrieved news into Gemini for grounded summarization.
-
-8. If no news is required, Gemini generates a general informational response.
-
-9. The final output is concise, factual, and free from hallucinations.
-
-
-### The architecture ensures that all responses are grounded in real-time data fetched via an MCP-compliant server, preventing hallucinations.
+### Professional Research-Agent Behavior
+- Avoids speculative answers  
+- Avoids biographical guesses unless explicitly present in news  
+- Responds conservatively when information is incomplete  
 
 ---
 
+## System Architecture
+
+User Query  
+↓  
+Gemini LLM (Intent Understanding + Subject Extraction)  
+
+  ↓ decides external data is required  
+  
+MCP News Search Tool  
+
+  ↓ executes via  
+  
+MCP Client (JSON-RPC over stdio)  
+
+  ↓  
+Local MCP News Server  
+
+  ↓  
+Google News RSS (XML Feed)  
+
+  ↓  
+Structured News Data  
+
+  ↓  
+Gemini LLM (Strict, Grounded Summarization)  
+
+  ↓  
+Final Market Intelligence Output  
 
 
+> All responses are grounded in **real-time public news** retrieved via an MCP-compliant server.
 
-# How It Works
-===============
+---
+
+## How It Works
+
 ### 1. User Input
 
 The user enters a natural language query, such as:
 
 What is the latest news on Clinware funding?
 
-### 2. Intent Detection
+### 2. Subject Extraction (LLM Reasoning)
 
-The agent checks for news-related keywords:
-
-`news`
-
-`latest`
-
-`funding`
-
-`update`
-
-`happening`
-
-`launch`
-
-`working`
-
-If detected → news flow
-Otherwise → general knowledge flow
-
-### 3. Entity Extraction (LLM Reasoning)
-
-For news queries, Gemini is asked to:
-
-Extract the primary entity (company, product, or organization).
+Gemini is used to:
+- Identify the **main subject** that news articles would be written about  
+- Produce a **clean RSS search term**  
 
 This step:
+- Avoids hardcoded company lists  
+- Uses the LLM **only for classification**, not facts  
 
-Avoids hardcoded company lists
-
-Uses the LLM only for classification, not facts
-
-### 4. MCP Tool Invocation
+### 3. MCP Tool Invocation
 
 The agent calls the MCP client, which:
+- Sends a JSON-RPC request to the MCP server  
+- Includes a unique request ID  
+- Waits for a response with timeout protection  
 
-Sends a JSON-RPC request to the MCP server
-
-Includes a unique request ID
-
-Waits for a response with timeout protection
-
-### 5. MCP News Server Processing
+### 4. MCP News Server Processing
 
 The MCP server:
+- Validates the JSON-RPC request  
+- Queries Google News RSS  
+- Performs robust keyword-based filtering  
+- Returns:
+  - `result` → structured news articles  
+  - `error` → when no news is found  
 
-Validates the JSON-RPC request
-
-Queries Google News RSS
-
-Filters articles relevant to the entity
-
-Returns:
-
-result → structured news data
-
-error → if no news is found
-
-### 6. Grounded Summarization
+### 5. Grounded Summarization
 
 If news is found, Gemini is instructed to:
+- Use **only** the provided news data  
+- Avoid speculation or inference  
+- Tailor the wording to the user’s question  
 
-Use only the provided news
-
-Avoid speculation
-
-Produce a concise, factual summary
-
-### 7. Final Output
+### 6. Final Output
 
 The agent prints:
+- A concise, factual answer  
+- Clear source attribution  
 
-The summarized result
-
-A clear source attribution
-
-If no news exists, the agent explicitly states that no verified public news was found.
-
-
-# Error Handling & Responsible AI
-In this section, I
-- The agent will clearly declare that there is no public news.
-- There are no assumptions or made-up insights produced.
+If no relevant news exists, the agent explicitly states that **no verified public news was found**.
 
 ---
 
-# Setup Instructions
+## Error Handling & Responsible AI
+
+- The agent clearly declares when no public news exists  
+- No assumptions or fabricated information are produced  
+- All factual content originates from Google News RSS  
+
+This ensures **responsible, explainable AI behavior**.
+
+---
+
+## Setup Instructions
 
 ### Prerequisites
-- Python 3.10+
-- Gemini API key
+- Python 3.10+  
+- Gemini API Key
 
 ### Environment Variables
 Create a `.env` file in the project root:
@@ -222,10 +197,8 @@ python agent.py
 
 ### This project demonstrates how to build a responsible, production-style AI agent that:
 
-Integrates LLM reasoning with real-world data
+- Integrates LLM reasoning with real-world data
 
-Uses tools correctly and safely
+- Uses external tools safely and deterministically
 
-Produces trustworthy, explainable outputs
-
-It serves as a strong reference implementation for Market Intelligence Agents, MCP-based architectures, and tool-augmented LLM systems.
+- Produces trustworthy, explainable outputs
